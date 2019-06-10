@@ -3,6 +3,7 @@
 const path = require('path');
 const mergeTrees = require('broccoli-merge-trees');
 const Funnel = require('broccoli-funnel');
+const map = require('broccoli-stew').map;
 
 module.exports = {
   name: 'ember-cli-bootstrap-datepicker',
@@ -10,10 +11,8 @@ module.exports = {
   included: function(app) {
     this._super.included(app);
 
-    if (process.env.EMBER_CLI_FASTBOOT !== 'true') {
-      app.import(path.join(this.treePaths.vendor, 'bootstrap-datepicker.js'));
-      app.import(path.join(this.treePaths.vendor, 'bootstrap-datepicker.css'));
-    }
+    app.import(path.join(this.treePaths.vendor, 'bootstrap-datepicker.js'));
+    app.import(path.join(this.treePaths.vendor, 'bootstrap-datepicker.css'));
   },
 
   treeForVendor(vendorTree) {
@@ -28,8 +27,16 @@ module.exports = {
     if (vendorTree) {
       trees.push(vendorTree);
     }
-    trees.push(
+
+    // Don't load the bootstrap-datepicker.js script if we're running under
+    // Fastboot (due to the jQuery dependency)
+    let bootstrap_datepicker_js = map(
       new Funnel(jsDir, { files: [ 'bootstrap-datepicker.js' ] }),
+      (content) => `if (typeof FastBoot === 'undefined') { ${content} }`
+    );
+
+    trees.push(
+      bootstrap_datepicker_js,
       new Funnel(cssDir, { files: [ 'bootstrap-datepicker.css' ] }),
       new Funnel(localesDir, { destDir: 'bootstrap-datepicker-locales' })
     );
